@@ -117,7 +117,7 @@ $$
 \Delta V = V_{current} - V_{average}
 $$
 
-### 3) Hype Momentum (M_hype)
+### 3) Hype Momentum ($M_hype$)
 
 A volume-aware gate to prevent low-signal false positives.
 
