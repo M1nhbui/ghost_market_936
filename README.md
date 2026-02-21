@@ -105,25 +105,25 @@ The MVP engine computes three streaming metrics in a **memory-efficient 5-minute
 
 Measures whether the market has reacted yet.
 
-[
+$$
 \Delta P = \frac{P_{current} - P_{average}}{P_{average}}
-]
+$$
 
 ### 2) Vibe Move (ΔV)
 
 Measures the spike in human emotion.
 
-[
+$$
 \Delta V = V_{current} - V_{average}
-]
+$$
 
 ### 3) Hype Momentum (M_hype)
 
 A volume-aware gate to prevent low-signal false positives.
 
-[
+$$
 M_{hype} = \Delta V \times N
-]
+$$
 
 Where `N` is the message velocity (count) in the 5-minute window.
 
@@ -131,8 +131,8 @@ Where `N` is the message velocity (count) in the 5-minute window.
 
 Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 
-* (M_{hype} > 100)  *(high volume + strong positive vibe)*
-* (\Delta P < 0.02) *(price hasn’t moved yet)*
+* $M_{hype} > 100$  *(high volume + strong positive vibe)*
+* $\Delta P < 0.02$ *(price hasn’t moved yet)*
 
 ---
 
@@ -236,7 +236,7 @@ streamlit run frontend/app.py
 
 ### Concept drift-aware detection
 
-Hardcoded thresholds (e.g., (M_{hype} > 100)) work for an MVP, but real markets drift:
+Hardcoded thresholds (e.g., $M_{hype} > 100$) work for an MVP, but real markets drift:
 
 * What counts as “big hype” varies by asset
 * A threshold that’s huge for a small coin can be noise for BTC
