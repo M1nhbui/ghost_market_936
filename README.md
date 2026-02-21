@@ -101,7 +101,7 @@ A two-step funnel:
 
 The MVP engine computes three streaming metrics in a **memory-efficient 5-minute window**:
 
-### 1) Price Move (ΔP)
+### 1) Price Move ($\Delta P$)
 
 Measures whether the market has reacted yet.
 
@@ -109,7 +109,7 @@ $$
 \Delta P = \frac{P_{current} - P_{average}}{P_{average}}
 $$
 
-### 2) Vibe Move (ΔV)
+### 2) Vibe Move ($\Delta V$)
 
 Measures the spike in human emotion.
 
@@ -117,7 +117,7 @@ $$
 \Delta V = V_{current} - V_{average}
 $$
 
-### 3) Hype Momentum ($M_hype$)
+### 3) Hype Momentum ($M_{hype}$)
 
 A volume-aware gate to prevent low-signal false positives.
 
