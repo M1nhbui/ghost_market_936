@@ -32,6 +32,8 @@ This helps surface early signals of:
 ## 🏗️ System Architecture
 
 GhostMarket uses an **in-flight streaming** architecture optimized for low latency.
+<img width="8192" height="987" alt="Ghost Market" src="https://github.com/user-attachments/assets/d12d32df-a98b-47fd-9b73-d2f510447992" />
+
 
 ### Phase 1 — The Listeners (Data Ingestion)
 
@@ -154,7 +156,8 @@ Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 ghostmarket/
 │
 ├── producers/
-│   ├── price_producer.py      # CoinGecko -> Kafka "live-prices"
+│   ├── price_fetcher.py       # CoinGecko API fetch logic
+│   ├── price_producer.py      # Kafka producer loop (uses price_fetcher.py)
 │   └── social_producer.py     # Reddit/X -> Kafka "live-social"
 │
 ├── processor/
