@@ -28,6 +28,7 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
    REDDIT_CLIENT_SECRET=
    REDDIT_USER_AGENT=
    MOTHERDUCK_TOKEN=
+   COINGECKO_API_KEY=
    ```
 4. **Create Kafka topics** on Upstash console:
    - `live-prices`
@@ -39,15 +40,24 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 
 ### 1A. `producers/price_producer.py`
 
-**Purpose:** Continuously poll live asset prices and push them into Kafka.
+**Purpose:** Continuously poll live asset prices using the CoinGecko Demo API and push structured messages into Kafka.
 
 #### Work:
-1. Load target tickers from config: `["bitcoin", "dogecoin", "gamestop"]`
-2. Every **5 seconds**, call the **CoinGecko API**:
+1. Load `COINGECKO_API_KEY` from `.env`
+2. Configure the API call targeting multiple assets in **one request**:
    ```
-   GET https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,dogecoin&vs_currencies=usd
+   GET https://api.coingecko.com/api/v3/simple/price
+       ?ids=bitcoin,dogecoin
+       &vs_currencies=usd
+   Headers:
+       x-cg-demo-api-key: <your_key>
+       accept: application/json
    ```
-3. For each asset, build a structured message:
+3. Implement a `fetch_prices()` function:
+   - Wraps the `requests.get()` call
+   - Calls `response.raise_for_status()` to catch HTTP errors (4xx / 5xx)
+   - Returns parsed JSON or `None` on failure
+4. For each asset in the response, build a structured Kafka message:
    ```json
    {
      "ticker": "bitcoin",
@@ -55,8 +65,26 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
      "timestamp": "2026-02-21T10:05:00Z"
    }
    ```
-4. **Serialize** to JSON and **produce** to Kafka topic `live-prices`
-5. Handle API rate limits and network errors gracefully
+5. **Produce** each message to Kafka topic `live-prices`
+6. Run in a `while True` loop with **`time.sleep(60)`**:
+
+   > ⚠️ **Rate Limit Note:** The CoinGecko **Demo API key** enforces strict rate limits.
+   > The poll interval is set to **60 seconds** (not 5 seconds as originally planned)
+   > to avoid hitting `429 Too Many Requests`. This is a hard constraint of the free tier.
+
+   ```python
+   while True:
+       data = fetch_prices()
+       if data:
+           for ticker, values in data.items():
+               message = {
+                   "ticker": ticker,
+                   "price_usd": values["usd"],
+                   "timestamp": datetime.utcnow().isoformat()
+               }
+               producer.produce("live-prices", json.dumps(message))
+       time.sleep(60)
+   ```
 
 ---
 
@@ -93,6 +121,11 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 1. **Partition topics** by ticker (e.g., all `"bitcoin"` messages go to the same partition) → guarantees ordering per asset
 2. Kafka retains messages, so if the processor crashes/restarts, it can **resume from offset** without data loss
 3. Both producers write concurrently with **no coordination needed** — Kafka handles the fan-in
+
+> ⚠️ **Timing Implication:** Because price data now arrives every **60 seconds** instead of 5,
+> the sliding window math in Phase 3 will have sparser price data points.
+> The `SlidingWindow` for prices effectively holds ~5 samples per 5-minute window
+> instead of ~60. This is still valid but reduces price-side resolution.
 
 ---
 
@@ -187,7 +220,8 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 
 #### Work:
 1. **Connect to MotherDuck** using token from `.env`
-2. Use `st.experimental_rerun()` or `time.sleep()` loop to **auto-refresh** every few seconds
+2. Use `st.experimental_rerun()` or `time.sleep()` loop to **auto-refresh** every 60 seconds
+   to align with the price producer's poll interval
 3. **Query recent data**:
    ```sql
    SELECT * FROM market_signals
@@ -210,21 +244,33 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 ## 🔄 Full Data Flow Summary
 
 ```
-Reddit/CoinGecko
-      ↓
-  [Producers] — keyword filter, polling
-      ↓
-  [Upstash Kafka] — partitioned, time-ordered
-      ↓
-  [Quix Streams Consumer]
+Reddit                          CoinGecko (Demo API)
+   |                                    |
+   | streaming comments           GET /simple/price
+   |                              every 60s (rate limit)
+   ↓                                    ↓
+[social_producer.py]          [price_producer.py]
+  keyword filter               fetch_prices()
+  build JSON payload           raise_for_status()
+       |                             |
+       ↓                             ↓
+   [Upstash Kafka]  ←———————————————┘
+   live-social topic           live-prices topic
+   (partitioned by ticker)     (partitioned by ticker)
+            |
+            ↓
+   [Quix Streams Consumer]
       ├── FinBERT: text → vibe score [-1, +1]
       ├── SlidingWindow: rolling 5-min memory (deque)
+      │     price window: ~5 samples per 5 min (60s cadence)
+      │     vibe window:  high-frequency (per comment)
       ├── Math: ΔP, ΔV, M_hype
       └── Alert: M_hype > 100 AND ΔP < 0.02?
             ↓
       [MotherDuck] — all signals persisted
             ↓
-      [Streamlit] — live charts, vibe meter, alerts
+      [Streamlit] — refreshes every 60s
+                    live charts, vibe meter, alerts
 ```
 
 ---
@@ -233,9 +279,9 @@ Reddit/CoinGecko
 
 | File | Status | Key Dependencies |
 |------|--------|-----------------|
-| `.env` | Configure first | All external services |
+| `.env` | Configure first | All external services + `COINGECKO_API_KEY` |
 | `requirements.txt` | Create early | Everything |
-| `producers/price_producer.py` | Phase 1A | `requests`, `kafka` |
+| `producers/price_producer.py` | Phase 1A | `requests`, `kafka`, `python-dotenv` |
 | `producers/social_producer.py` | Phase 1B | `praw`, `kafka` |
 | `processor/math_utils.py` | Phase 3A | `collections.deque` |
 | `processor/stream_processor.py` | Phase 3B | `quixstreams`, `transformers`, `duckdb` |
@@ -245,7 +291,9 @@ Reddit/CoinGecko
 
 ## ⚠️ Key Engineering Decisions to Make
 
-1. **FinBERT is CPU-heavy** — consider batching social messages or using a GPU if throughput is high
-2. **Window size is fixed at 5 min** — make it configurable per ticker via config file
-3. **Alert deduplication** — add a cooldown timer so one event doesn't fire 100 alerts
-4. **Kafka consumer group ID** — set explicitly so restarts resume from last committed offset
+1. **CoinGecko Demo rate limit** — poll interval is locked at **60s minimum**; upgrade to a paid plan if lower latency price data is needed
+2. **FinBERT is CPU-heavy** — consider batching social messages or using a GPU if throughput is high
+3. **Window size is fixed at 5 min** — with 60s price cadence this gives ~5 price points; make window size configurable if needed
+4. **Alert deduplication** — add a cooldown timer so one event doesn't fire 100 alerts
+5. **Kafka consumer group ID** — set explicitly so restarts resume from last committed offset
+6. **Error handling in `fetch_prices()`** — `raise_for_status()` catches HTTP errors; wrap in try/except to log and continue the loop without crashing
