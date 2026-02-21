@@ -8,3 +8,4 @@ torch
 duckdb
 streamlit
 plotly
+confluent-kafka
