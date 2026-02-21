@@ -32,6 +32,8 @@ This helps surface early signals of:
 ## 🏗️ System Architecture
 
 GhostMarket uses an **in-flight streaming** architecture optimized for low latency.
+<img width="8192" height="987" alt="Ghost Market" src="https://github.com/user-attachments/assets/d12d32df-a98b-47fd-9b73-d2f510447992" />
+
 
 ### Phase 1 — The Listeners (Data Ingestion)
 
