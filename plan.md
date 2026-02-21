@@ -38,11 +38,13 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 
 ## 🔁 Phase 1 — Data Ingestion Layer (Producers)
 
-### 1A. `producers/price_producer.py`
+### 1A. `producers/price_fetcher.py` + `producers/price_producer.py`
 
-**Purpose:** Continuously poll live asset prices using the CoinGecko Demo API and push structured messages into Kafka.
+**Purpose:** Split into two files for clarity and independent testability:
+- `price_fetcher.py` — handles only the CoinGecko API call (testable without Kafka)
+- `price_producer.py` — handles only the Kafka producing loop (imports from `price_fetcher.py`)
 
-#### Work:
+#### Work — `price_fetcher.py`:
 1. Load `COINGECKO_API_KEY` from `.env`
 2. Configure the API call targeting multiple assets in **one request**:
    ```
@@ -57,7 +59,12 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
    - Wraps the `requests.get()` call
    - Calls `response.raise_for_status()` to catch HTTP errors (4xx / 5xx)
    - Returns parsed JSON or `None` on failure
-4. For each asset in the response, build a structured Kafka message:
+4. Expose `TARGET_TICKERS` as a module-level constant for reuse
+5. Run standalone (`if __name__ == "__main__"`) to test fetching without Kafka
+
+#### Work — `price_producer.py`:
+1. Import `fetch_prices` and `TARGET_TICKERS` from `price_fetcher`
+2. For each asset in the response, build a structured Kafka message:
    ```json
    {
      "ticker": "bitcoin",
@@ -65,8 +72,8 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
      "timestamp": "2026-02-21T10:05:00Z"
    }
    ```
-5. **Produce** each message to Kafka topic `live-prices`
-6. Run in a `while True` loop with **`time.sleep(60)`**:
+3. **Produce** each message to Kafka topic `live-prices`
+4. Run in a `while True` loop with **`time.sleep(60)`**:
 
    > ⚠️ **Rate Limit Note:** The CoinGecko **Demo API key** enforces strict rate limits.
    > The poll interval is set to **60 seconds** (not 5 seconds as originally planned)
@@ -249,9 +256,12 @@ Reddit                          CoinGecko (Demo API)
    | streaming comments           GET /simple/price
    |                              every 60s (rate limit)
    ↓                                    ↓
-[social_producer.py]          [price_producer.py]
+[social_producer.py]          [price_fetcher.py]
   keyword filter               fetch_prices()
   build JSON payload           raise_for_status()
+                                       |
+                              [price_producer.py]
+                               Kafka produce loop
        |                             |
        ↓                             ↓
    [Upstash Kafka]  ←———————————————┘
@@ -281,7 +291,8 @@ Reddit                          CoinGecko (Demo API)
 |------|--------|-----------------|
 | `.env` | Configure first | All external services + `COINGECKO_API_KEY` |
 | `requirements.txt` | Create early | Everything |
-| `producers/price_producer.py` | Phase 1A | `requests`, `kafka`, `python-dotenv` |
+| `producers/price_fetcher.py` | Phase 1A | `requests`, `python-dotenv` |
+| `producers/price_producer.py` | Phase 1A | `kafka`, `price_fetcher` |
 | `producers/social_producer.py` | Phase 1B | `praw`, `kafka` |
 | `processor/math_utils.py` | Phase 3A | `collections.deque` |
 | `processor/stream_processor.py` | Phase 3B | `quixstreams`, `transformers`, `duckdb` |
@@ -297,3 +308,4 @@ Reddit                          CoinGecko (Demo API)
 4. **Alert deduplication** — add a cooldown timer so one event doesn't fire 100 alerts
 5. **Kafka consumer group ID** — set explicitly so restarts resume from last committed offset
 6. **Error handling in `fetch_prices()`** — `raise_for_status()` catches HTTP errors; wrap in try/except to log and continue the loop without crashing
+7. **Test fetching independently** — run `python producers/price_fetcher.py` directly to verify CoinGecko responses without needing Kafka running

@@ -156,7 +156,8 @@ Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 ghostmarket/
 │
 ├── producers/
-│   ├── price_producer.py      # CoinGecko -> Kafka "live-prices"
+│   ├── price_fetcher.py       # CoinGecko API fetch logic
+│   ├── price_producer.py      # Kafka producer loop (uses price_fetcher.py)
 │   └── social_producer.py     # Reddit/X -> Kafka "live-social"
 │
 ├── processor/
