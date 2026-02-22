@@ -32,7 +32,7 @@ This helps surface early signals of:
 ## 🏗️ System Architecture
 
 GhostMarket uses an **in-flight streaming** architecture optimized for low latency.
-<img width="8192" height="981" alt="GhostMarket-v2" src="https://github.com/user-attachments/assets/c5208bcd-4b01-479f-b2d8-426bd31bb749" />
+<img width="2041" height="6064" alt="CoinGecko Price and Social-2026-02-22-032704" src="https://github.com/user-attachments/assets/fffdd27e-ddd3-48fb-aa3e-aeb3db35beba" />
 
 
 ### Phase 1 — The Listeners (Data Ingestion)
@@ -43,7 +43,7 @@ Two asynchronous Python scripts run in parallel:
 * **Social Producer**: Pulls live text mentions from:
 
   * Telegram (e.g., `binanceexchange`, `CryptoComOfficial`, `dogecoin_official`)
-  * X/Twitter feeds (optional / if enabled)
+  
 
 ### Phase 2 — The Highway (Message Broker)
 
@@ -71,7 +71,7 @@ All three tables share `ticker` and `timestamp` as join keys. `decoupling_signal
 
 ### Phase 5 — The Face (Real-Time UI)
 
-A **Streamlit** dashboard queries MotherDuck continuously and renders:
+A **React and Tailwind CSS** dashboard queries MotherDuck continuously and renders:
 
 * dual-axis live charts (price + vibe)
 * a “Vibe Meter”
