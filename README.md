@@ -59,13 +59,15 @@ A consumer (Quix Streams) subscribes to Kafka. For **each message**:
 
 ### Phase 4 — The Memory (Data Lakehouse)
 
-Processed records are written into **MotherDuck** (DuckDB cloud) including:
+Processed records are written into **MotherDuck** (DuckDB cloud) across three tables:
 
-* timestamp
-* current price
-* vibe score
-* message velocity
-* alert status
+| Table | Written By | Contents |
+|-------|-----------|---------|
+| `price_snapshots` | `stream_processor.py` | Raw price ticks from CoinGecko |
+| `social_signals` | `stream_processor.py` | Raw Telegram messages + FinBERT vibe scores |
+| `decoupling_signals` | `stream_processor.py` | Computed ΔP, ΔV, M_hype, alert status |
+
+All three tables share `ticker` and `timestamp` as join keys. `decoupling_signals` is the primary table read by the dashboard — it is derived from the in-memory sliding windows, not by SQL-joining the raw tables.
 
 ### Phase 5 — The Face (Real-Time UI)
 

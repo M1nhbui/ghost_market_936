@@ -205,22 +205,85 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 **Purpose:** Persist every processed event for querying by the dashboard.
 
 #### Work:
-1. **Create table schema** on MotherDuck:
-   ```sql
-   CREATE TABLE market_signals (
-     timestamp     TIMESTAMPTZ,
-     ticker        VARCHAR,
-     price_usd     DOUBLE,
-     vibe_score    DOUBLE,
-     msg_velocity  INTEGER,
-     delta_price   DOUBLE,
-     delta_vibe    DOUBLE,
-     hype_momentum DOUBLE,
-     alert_status  VARCHAR   -- NULL or 'IMMINENT_HYPE_PUMP'
-   );
+1. **Connection** via `processor/db.py`:
+   ```python
+   con = duckdb.connect(f"md:?motherduck_token={TOKEN}")
+   con.execute("USE ghostmarket")
    ```
-2. Stream processor uses DuckDB Python client to **`INSERT`** a row after each processed event
-3. Dashboard queries this table using **DuckDB SQL** directly from Python
+
+2. **Create three tables** on MotherDuck (all created by `init_schema()` on startup):
+
+   **Table 1: `price_snapshots`** — raw price ticks from CoinGecko
+   ```sql
+   CREATE TABLE IF NOT EXISTS price_snapshots (
+       ticker      TEXT,
+       price_usd   DOUBLE,
+       timestamp   DOUBLE,
+       ingested_at TIMESTAMP DEFAULT now()
+   )
+   ```
+
+   **Table 2: `social_signals`** — raw Telegram messages post-FinBERT scoring
+   ```sql
+   CREATE TABLE IF NOT EXISTS social_signals (
+       ticker      TEXT,
+       vibe_score  DOUBLE,
+       text        TEXT,
+       author      TEXT,
+       source      TEXT,
+       timestamp   DOUBLE,
+       ingested_at TIMESTAMP DEFAULT now()
+   )
+   ```
+
+   **Table 3: `decoupling_signals`** — computed metrics output from stream processor
+   ```sql
+   CREATE TABLE IF NOT EXISTS decoupling_signals (
+       ticker          TEXT,
+       timestamp       DOUBLE,
+       price_current   DOUBLE,
+       price_avg       DOUBLE,
+       vibe_current    DOUBLE,
+       vibe_avg        DOUBLE,
+       delta_price     DOUBLE,
+       delta_vibe      DOUBLE,
+       hype_momentum   DOUBLE,
+       alert           TEXT,       -- NULL or 'IMMINENT_HYPE_PUMP'
+       recorded_at     TIMESTAMP DEFAULT now()
+   )
+   ```
+
+3. **How the three tables link together:**
+
+   All three tables share `ticker` and `timestamp` as the join keys.
+
+   ```
+   price_snapshots                    social_signals
+        |                                   |
+        | ticker + timestamp                | ticker + timestamp
+        └──────────────┬────────────────────┘
+                       ↓
+              decoupling_signals
+          (derived from both above via
+           sliding window math in
+           stream_processor.py)
+   ```
+
+   - `price_snapshots` and `social_signals` are **raw input tables** — written directly by `stream_processor.py` as messages arrive from Kafka
+   - `decoupling_signals` is the **computed output table** — written after every poll cycle using values from the in-memory `SlidingWindow` (not by joining the raw tables directly)
+   - The dashboard (`frontend/app.py`) primarily reads from `decoupling_signals` for charts and alerts, and can optionally query `social_signals` to show raw message text
+
+4. **Write helpers** in `processor/db.py`:
+   - `insert_price(con, ticker, price_usd, timestamp)` → writes to `price_snapshots`
+   - `insert_social(con, ticker, vibe_score, text, author, source, timestamp)` → writes to `social_signals`
+   - `insert_signal(con, signal)` → writes to `decoupling_signals`
+
+5. **Dashboard query** (reads from `decoupling_signals`):
+   ```sql
+   SELECT * FROM decoupling_signals
+   WHERE timestamp > epoch(NOW()) - 600
+   ORDER BY timestamp DESC
+   ```
 
 ---
 
