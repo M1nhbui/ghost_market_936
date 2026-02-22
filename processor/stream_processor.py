@@ -13,7 +13,7 @@ from db import get_connection, init_schema, insert_price, insert_social, insert_
 load_dotenv()
 
 # --- Config ---
-PRICE_TOPICS = ["dogecoin"]
+PRICE_TOPICS = ["bitcoin"]
 SOCIAL_TOPIC = "live-social"
 POLL_TIMEOUT = 5       # seconds to wait per Kafka poll
 WINDOW_SECONDS = 300   # 5-minute sliding window
@@ -36,6 +36,7 @@ def finbert_score(text: str) -> float:
     neutral   → 0.0
     Truncates to 512 tokens automatically.
     """
+    print(f"[DEBUG finbert_score] {text=}")
     result = sentiment(text[:512])[0]
     label = result["label"]
     score = result["score"]
@@ -117,6 +118,8 @@ def compute_and_alert(ticker: str) -> dict | None:
     p_win = price_windows[ticker]
     v_win = vibe_windows[ticker]
 
+    print(f"[DEBUG inside compute_and_alert] {vibe_windows=}")
+
     p_current = p_win.latest()
     p_avg = p_win.average()
     v_current = v_win.latest()
@@ -127,6 +130,10 @@ def compute_and_alert(ticker: str) -> dict | None:
         return None
 
     # Vibe data might not exist yet — default to 0.0 (neutral)
+
+    if v_current is None or v_avg is None:
+        raise ValueError()
+    
     if v_current is None:
         v_current = 0.0
     if v_avg is None:
@@ -180,6 +187,7 @@ def run():
 
         # Poll social topic
         raw = receive_one_content_from_kafka_topic(SOCIAL_TOPIC, timeout_s=POLL_TIMEOUT)
+        print(f"[DEBUG recieve social message] {raw=}")
         if raw:
             process_social_message(raw)
             msg = json.loads(raw)
@@ -197,6 +205,7 @@ def run():
         # Compute metrics and write signals
         for ticker in PRICE_TOPICS:
             signal = compute_and_alert(ticker)
+            print(f"[DEBUG] {signal=}")
             if signal:                          # only None if price window empty
                 insert_signal(con, signal)
 
