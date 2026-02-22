@@ -17,7 +17,7 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
    - `duckdb` (MotherDuck)
    - `python-dotenv` (secrets management)
    - `requests` (CoinGecko)
-   - `streamlit` + `plotly` (dashboard)
+   - `react` + `tailwindcss` (dashboard)
 3. **Configure `.env`** with all secrets:
    ```env
    BOOTSTRAP_SERVERS=
@@ -376,7 +376,7 @@ Telegram Groups                 CoinGecko (Demo API)
 | `producers/social_producer.py` | Phase 1B | `telethon`, `import_me_to_use_kafka_stuff` |
 | `processor/math_utils.py` | Phase 3A | `collections.deque` |
 | `processor/stream_processor.py` | Phase 3B | `transformers`, `duckdb` |
-| `frontend/app.py` | Phase 5 | `streamlit`, `plotly`, `duckdb` |
+| `frontend/app.py` | Phase 5 | `react`, `tailwindcss`, `duckdb` |
 
 ---
 
