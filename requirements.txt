@@ -10,3 +10,5 @@ streamlit
 plotly
 confluent-kafka
 telethon
+flask
+flask-cors
