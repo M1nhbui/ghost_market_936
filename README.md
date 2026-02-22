@@ -50,7 +50,7 @@ Raw, unstructured data is pushed immediately into **partitioned topics** in Aive
 
 ### Phase 3 — The Brain (Stream Processing & Threshold Engine)
 
-A consumer (Quix Streams) subscribes to Kafka. For **each message**:
+A consumer subscribes to Kafka. For **each message**:
 
 1. **Sentiment Extraction**: Text is scored with **FinBERT** → a continuous **Vibe Score** in `[-1.0, +1.0]`
 2. **Rolling Memory**: Maintain a sliding 5-minute window for sentiment and price using an **O(1)** `deque`
