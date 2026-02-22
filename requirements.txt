@@ -9,3 +9,4 @@ duckdb
 streamlit
 plotly
 confluent-kafka
+telethon

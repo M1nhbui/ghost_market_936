@@ -42,12 +42,12 @@ Two asynchronous Python scripts run in parallel:
 * **Price Producer**: Polls CoinGecko every **5 seconds** for target asset prices
 * **Social Producer**: Pulls live text mentions from:
 
-  * Reddit (e.g., `r/wallstreetbets`, `r/crypto`)
+  * Telegram (e.g., `binanceexchange`, `CryptoComOfficial`, `dogecoin_official`)
   * X/Twitter feeds (optional / if enabled)
 
 ### Phase 2 — The Highway (Message Broker)
 
-Raw, unstructured data is pushed immediately into **partitioned topics** in Upstash Kafka, creating a strict time-ordered stream.
+Raw, unstructured data is pushed immediately into **partitioned topics** in Aiven Kafka, creating a strict time-ordered stream.
 
 ### Phase 3 — The Brain (Stream Processing & Threshold Engine)
 
@@ -142,7 +142,7 @@ Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 
 | Technology             | Purpose           | Why it fits                             |
 | ---------------------- | ----------------- | --------------------------------------- |
-| Upstash Kafka          | Message broker    | Serverless Kafka (fast hackathon setup) |
+| Aiven Kafka            | Message broker    | Managed Kafka with SSL auth             |
 | Quix Streams           | Stream processing | Pure Python streaming; low overhead     |
 | Hugging Face (FinBERT) | NLP model         | Financial-text sentiment scoring        |
 | MotherDuck             | Lakehouse / DB    | DuckDB analytics with zero ops          |
@@ -158,7 +158,7 @@ ghostmarket/
 ├── producers/
 │   ├── price_fetcher.py       # CoinGecko API fetch logic
 │   ├── price_producer.py      # Kafka producer loop (uses price_fetcher.py)
-│   └── social_producer.py     # Reddit/X -> Kafka "live-social"
+│   └── social_producer.py     # Telegram -> Kafka "live-social"
 │
 ├── processor/
 │   ├── stream_processor.py    # Quix consumer: FinBERT + thresholds
@@ -201,11 +201,11 @@ cp .env.example .env
 
 GhostMarket expects secrets for (at minimum):
 
-* Upstash Kafka (broker + auth)
-* Reddit API (client id/secret)
+* Aiven Kafka (broker + SSL certificates)
+* Telegram API (API ID + API Hash)
 * MotherDuck token / connection string
 
-If you enable X/Twitter ingestion, you’ll also need X API credentials.
+If you enable X/Twitter ingestion, you'll also need X API credentials.
 
 ---
 

@@ -21,17 +21,18 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
    - `python-dotenv` (secrets management)
 3. **Configure `.env`** with all secrets:
    ```env
-   UPSTASH_KAFKA_BROKER=
-   UPSTASH_KAFKA_USERNAME=
-   UPSTASH_KAFKA_PASSWORD=
-   REDDIT_CLIENT_ID=
-   REDDIT_CLIENT_SECRET=
-   REDDIT_USER_AGENT=
+   BOOTSTRAP_SERVERS=
+   KAFKA_SSL_CA=certs_for_aiven_kafka_online/ca.pem
+   KAFKA_SSL_CERT=certs_for_aiven_kafka_online/service.cert
+   KAFKA_SSL_KEY=certs_for_aiven_kafka_online/service.key
+   TELEGRAM_API_ID=
+   TELEGRAM_API_HASH=
    MOTHERDUCK_TOKEN=
    COINGECKO_API_KEY=
    ```
-4. **Create Kafka topics** on Upstash console:
-   - `live-prices`
+4. **Create Kafka topics** on Aiven console:
+   - `bitcoin`
+   - `dogecoin`
    - `live-social`
 
 ---
@@ -100,27 +101,28 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 **Purpose:** Continuously ingest raw social text mentioning target assets and push to Kafka.
 
 #### Work:
-1. Initialize a **PRAW Reddit client** (async streaming mode)
-2. Subscribe to target subreddits: `r/wallstreetbets`, `r/CryptoCurrency`, etc.
-3. Stream all new comments/posts in real time
-4. Apply **Keyword Filter** (cheap gate):
-   - Check if comment text mentions any target ticker or keyword (e.g., `"bitcoin"`, `"BTC"`, `"DOGE"`)
+1. Initialize a **Telethon Telegram client** (async event-driven mode)
+2. Subscribe to target public Telegram groups: `binanceexchange`, `CryptoComOfficial`, `dogecoin_official`
+3. Listen for new messages in real time via `@client.on(events.NewMessage)`
+4. Apply **Alias-aware Keyword Filter** (cheap gate):
+   - Maintain a `TICKER_ALIASES` dict mapping typos and short forms to canonical tickers (e.g., `"btc"` → `"bitcoin"`, `"doge"` → `"dogecoin"`)
+   - Use `detect_tickers()` to split text into words, strip punctuation, and match against aliases
    - Discard if no match → reduces volume significantly
-5. For matching comments, build a structured message:
+5. For matching messages, build a structured message:
    ```json
    {
-     "ticker": "bitcoin",
-     "text": "BTC is going to moon, I'm buying more!",
-     "source": "reddit",
-     "subreddit": "wallstreetbets",
-     "timestamp": "2026-02-21T10:05:02Z"
+     "source": "telegram",
+     "timestamp": 1740134400.0,
+     "text": "btc to the moon!",
+     "tickers": ["bitcoin"],
+     "author": "123456789"
    }
    ```
 6. **Produce** to Kafka topic `live-social`
 
 ---
 
-## 🛣️ Phase 2 — Message Broker (Upstash Kafka)
+## 🛣️ Phase 2 — Message Broker (Aiven Kafka)
 
 **Purpose:** Act as the durable, time-ordered buffer between producers and consumers. Decouples ingestion speed from processing speed.
 
@@ -128,6 +130,7 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 1. **Partition topics** by ticker (e.g., all `"bitcoin"` messages go to the same partition) → guarantees ordering per asset
 2. Kafka retains messages, so if the processor crashes/restarts, it can **resume from offset** without data loss
 3. Both producers write concurrently with **no coordination needed** — Kafka handles the fan-in
+4. SSL certificate authentication is handled by `import_me_to_use_kafka_stuff.py` — producers simply call `send_string_to_kafka_topic(topic, payload)`
 
 > ⚠️ **Timing Implication:** Because price data now arrives every **60 seconds** instead of 5,
 > the sliding window math in Phase 3 will have sparser price data points.
@@ -251,21 +254,21 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 ## 🔄 Full Data Flow Summary
 
 ```
-Reddit                          CoinGecko (Demo API)
+Telegram Groups                 CoinGecko (Demo API)
    |                                    |
-   | streaming comments           GET /simple/price
-   |                              every 60s (rate limit)
+   | real-time messages           GET /simple/price
+   | (event-driven)               every 60s (rate limit)
    ↓                                    ↓
 [social_producer.py]          [price_fetcher.py]
-  keyword filter               fetch_prices()
-  build JSON payload           raise_for_status()
-                                       |
+  alias-aware keyword filter   fetch_prices()
+  detect_tickers()             raise_for_status()
+  build JSON payload                   |
                               [price_producer.py]
                                Kafka produce loop
        |                             |
        ↓                             ↓
-   [Upstash Kafka]  ←———————————————┘
-   live-social topic           live-prices topic
+   [Aiven Kafka]  ←————————————————┘
+   live-social topic           bitcoin / dogecoin topics
    (partitioned by ticker)     (partitioned by ticker)
             |
             ↓
@@ -273,7 +276,7 @@ Reddit                          CoinGecko (Demo API)
       ├── FinBERT: text → vibe score [-1, +1]
       ├── SlidingWindow: rolling 5-min memory (deque)
       │     price window: ~5 samples per 5 min (60s cadence)
-      │     vibe window:  high-frequency (per comment)
+      │     vibe window:  high-frequency (per message)
       ├── Math: ΔP, ΔV, M_hype
       └── Alert: M_hype > 100 AND ΔP < 0.02?
             ↓
@@ -292,8 +295,8 @@ Reddit                          CoinGecko (Demo API)
 | `.env` | Configure first | All external services + `COINGECKO_API_KEY` |
 | `requirements.txt` | Create early | Everything |
 | `producers/price_fetcher.py` | Phase 1A | `requests`, `python-dotenv` |
-| `producers/price_producer.py` | Phase 1A | `kafka`, `price_fetcher` |
-| `producers/social_producer.py` | Phase 1B | `praw`, `kafka` |
+| `producers/price_producer.py` | Phase 1A | `confluent-kafka`, `price_fetcher`, `import_me_to_use_kafka_stuff` |
+| `producers/social_producer.py` | Phase 1B | `telethon`, `import_me_to_use_kafka_stuff` |
 | `processor/math_utils.py` | Phase 3A | `collections.deque` |
 | `processor/stream_processor.py` | Phase 3B | `quixstreams`, `transformers`, `duckdb` |
 | `frontend/app.py` | Phase 5 | `streamlit`, `plotly`, `duckdb` |

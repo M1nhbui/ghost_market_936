@@ -36,7 +36,7 @@ for p in (_CA, _CERT, _KEY):
     if not p.exists():
         raise RuntimeError(f"Missing Kafka SSL file: {p}")
 
-EXPECTED_TOPIC_NAMES = {"bitcoin", "dogecoin"}
+EXPECTED_TOPIC_NAMES = {"bitcoin", "dogecoin", "live-social"}
 
 _BASE_CONFIG = {
     "bootstrap.servers": BOOTSTRAP,
