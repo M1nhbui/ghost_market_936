@@ -174,7 +174,7 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 **Purpose:** The core brain — consumes from Kafka, scores sentiment, computes metrics, writes to DB, triggers alerts.
 
 #### Work:
-1. **Initialize Quix Streams consumer** subscribed to both `live-prices` and `live-social`
+1. **Initialize consumer** subscribed to both `live-prices` and `live-social`
 2. **Load FinBERT model** from HuggingFace on startup:
    ```python
    # ProsusAI/finbert — trained on financial text
@@ -375,7 +375,7 @@ Telegram Groups                 CoinGecko (Demo API)
 | `producers/price_producer.py` | Phase 1A | `confluent-kafka`, `price_fetcher`, `import_me_to_use_kafka_stuff` |
 | `producers/social_producer.py` | Phase 1B | `telethon`, `import_me_to_use_kafka_stuff` |
 | `processor/math_utils.py` | Phase 3A | `collections.deque` |
-| `processor/stream_processor.py` | Phase 3B | `quixstreams`, `transformers`, `duckdb` |
+| `processor/stream_processor.py` | Phase 3B | `transformers`, `duckdb` |
 | `frontend/app.py` | Phase 5 | `streamlit`, `plotly`, `duckdb` |
 
 ---
