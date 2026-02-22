@@ -32,8 +32,7 @@ This helps surface early signals of:
 ## 🏗️ System Architecture
 
 GhostMarket uses an **in-flight streaming** architecture optimized for low latency.
-<img width="2041" height="6064" alt="CoinGecko Price and Social-2026-02-22-032704" src="https://github.com/user-attachments/assets/fffdd27e-ddd3-48fb-aa3e-aeb3db35beba" />
-
+<img width="50%" alt="CoinGecko Price and Social-2026-02-22-032704" src="https://github.com/user-attachments/assets/fffdd27e-ddd3-48fb-aa3e-aeb3db35beba" />
 
 ### Phase 1 — The Listeners (Data Ingestion)
 
