@@ -245,6 +245,11 @@ npm run dev
 
 ---
 
+## 📊 Dashboard Preview
+<img width="1920" height="1448" alt="ghostmarket_ui" src="https://github.com/user-attachments/assets/5d63ac85-832e-42e8-ad4b-319fdf6be9ee" />
+
+---
+
 ## 🚀 Roadmap (Post-Hackathon)
 
 ### Concept drift-aware detection
