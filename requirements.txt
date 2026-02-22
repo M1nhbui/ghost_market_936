@@ -1,13 +1,9 @@
 requests
 python-dotenv
-praw
 kafka-python
-quixstreams
 transformers
 torch
 duckdb
-streamlit
-plotly
 confluent-kafka
 telethon
 flask
