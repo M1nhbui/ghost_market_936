@@ -286,30 +286,42 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 
 ---
 
-## 📊 Phase 5 — Real-Time Dashboard (`frontend/app.py`)
+## 📊 Phase 5 — Real-Time Dashboard (`frontend/`)
 
 **Purpose:** Visualize decoupling events and alert users in real time.
 
 #### Work:
-1. **Connect to MotherDuck** using token from `.env`
-2. Use `st.experimental_rerun()` or `time.sleep()` loop to **auto-refresh** every 60 seconds
-   to align with the price producer's poll interval
-3. **Query recent data**:
+1. **Start `api_server.py`** first — this exposes MotherDuck data as REST endpoints for the React app to consume
+2. **Install frontend dependencies** (first time only):
+   ```bash
+   cd frontend
+   npm install
+   ```
+3. **Start the dev server**:
+   ```bash
+   npm run dev
+   ```
+4. **Real-time updates** — the dashboard does NOT poll on a fixed interval. Instead:
+   - Every Kafka message processed → immediately written to MotherDuck via `db.py`
+   - Frontend listens for updates and re-renders as soon as new data arrives
+5. **Query recent data**:
    ```sql
-   SELECT * FROM market_signals
-   WHERE timestamp > NOW() - INTERVAL '10 minutes'
+   SELECT * FROM decoupling_signals
+   WHERE timestamp > epoch(NOW()) - 600
    ORDER BY timestamp DESC
    ```
-4. **Render components**:
+6. **Render components**:
 
    | Component | Data Used | Purpose |
    |-----------|-----------|---------|
    | **Dual-axis line chart** | `price_usd` + `vibe_score` vs `timestamp` | Visualize decoupling visually |
    | **Vibe Meter** | Latest `vibe_score` | Instant emotional gauge |
-   | **Alert banner** | `alert_status == 'IMMINENT_HYPE_PUMP'` | Flashing warning when triggered |
+   | **Alert banner** | `alert == 'IMMINENT_HYPE_PUMP'` | Flashing warning when triggered |
    | **Ticker selector** | All active tickers | Filter per asset |
 
-5. Use **Plotly** for dual-axis charts (price on left Y-axis, vibe on right Y-axis)
+7. Built with **React + Vite** for fast development and hot reload
+8. Styled with **Tailwind CSS** for utility-first rapid UI building
+9. Use a charting library (e.g., **Recharts** or **Chart.js**) for dual-axis charts
 
 ---
 
@@ -334,7 +346,7 @@ Telegram Groups                 CoinGecko (Demo API)
    (partitioned by ticker)     (partitioned by ticker)
             |
             ↓
-   [Quix Streams Consumer]
+   [stream_processor.py]
       ├── FinBERT: text → vibe score [-1, +1]
       ├── SlidingWindow: rolling 5-min memory (deque)
       │     price window: ~5 samples per 5 min (60s cadence)
@@ -342,10 +354,13 @@ Telegram Groups                 CoinGecko (Demo API)
       ├── Math: ΔP, ΔV, M_hype
       └── Alert: M_hype > 100 AND ΔP < 0.02?
             ↓
-      [MotherDuck] — all signals persisted
+      [MotherDuck] — all signals persisted immediately
             ↓
-      [Streamlit] — refreshes every 60s
-                    live charts, vibe meter, alerts
+      [api_server.py] — REST API over MotherDuck
+            ↓
+      [React + Vite + Tailwind CSS]
+         updates in real time as data arrives
+         live charts, vibe meter, alerts
 ```
 
 ---

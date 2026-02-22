@@ -70,10 +70,10 @@ All three tables share `ticker` and `timestamp` as join keys. `decoupling_signal
 
 ### Phase 5 — The Face (Real-Time UI)
 
-A **React and Tailwind CSS** dashboard queries MotherDuck continuously and renders:
+A **React + Vite + Tailwind CSS** dashboard queries MotherDuck continuously and renders:
 
 * dual-axis live charts (price + vibe)
-* a “Vibe Meter”
+* a "Vibe Meter"
 * flashing predictive alerts
 
 ---
@@ -144,10 +144,10 @@ Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 | Technology             | Purpose           | Why it fits                             |
 | ---------------------- | ----------------- | --------------------------------------- |
 | Aiven Kafka            | Message broker    | Managed Kafka with SSL auth             |
-| Quix Streams           | Stream processing | Pure Python streaming; low overhead     |
-| Hugging Face (FinBERT) | NLP model         | Financial-text sentiment scoring        |
+| FinBERT (HuggingFace)  | NLP model         | Financial-text sentiment scoring        |
 | MotherDuck             | Lakehouse / DB    | DuckDB analytics with zero ops          |
-| Streamlit              | Frontend UI       | Fast reactive dashboard in Python       |
+| React + Vite           | Frontend UI       | Fast modern frontend with hot reload    |
+| Tailwind CSS           | Frontend styling  | Utility-first CSS for rapid UI building |
 
 ---
 
@@ -162,11 +162,11 @@ ghostmarket/
 │   └── social_producer.py     # Telegram -> Kafka "live-social"
 │
 ├── processor/
-│   ├── stream_processor.py    # Quix consumer: FinBERT + thresholds
-│   └── math_utils.py          # Sliding window + decoupling math
+│   ├── stream_processor.py    # FinBERT + thresholds + DB writes
+│   ├── math_utils.py          # Sliding window + decoupling math
+│   └── db.py                  # MotherDuck connection + schema + write helpers
 │
-├── frontend/
-│   └── app.py                 # Streamlit dashboard (MotherDuck)
+├── frontend/                  # React + Vite + Tailwind CSS dashboard
 │
 ├── requirements.txt
 └── .env.example               # Template for API keys & connection strings
@@ -230,9 +230,18 @@ python processor/stream_processor.py
 ```
 
 ```bash
-# Terminal 4: Dashboard
-streamlit run frontend/app.py
+# Terminal 4: API server (first)
+python frontend/api_server.py
 ```
+
+```bash
+# Terminal 5: Dashboard (first time only: npm install)
+cd frontend
+npm install   # first time only
+npm run dev
+```
+
+> The dashboard reflects data **in real time** — every time a Kafka message is processed and written to MotherDuck, the frontend updates immediately. There is no fixed refresh interval.
 
 ---
 
