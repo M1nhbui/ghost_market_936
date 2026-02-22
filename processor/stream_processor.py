@@ -13,7 +13,7 @@ from db import get_connection, init_schema, insert_price, insert_social, insert_
 load_dotenv()
 
 # --- Config ---
-PRICE_TOPICS = ["bitcoin", "dogecoin"]
+PRICE_TOPICS = ["dogecoin"]
 SOCIAL_TOPIC = "live-social"
 POLL_TIMEOUT = 5       # seconds to wait per Kafka poll
 WINDOW_SECONDS = 300   # 5-minute sliding window
@@ -111,7 +111,8 @@ def process_social_message(raw: str) -> None:
 def compute_and_alert(ticker: str) -> dict | None:
     """
     Compute decoupling metrics for a ticker and fire alert if conditions met.
-    Returns a signal dict or None.
+    Returns a signal dict always if there is any price data,
+    or None only if the window is completely empty.
     """
     p_win = price_windows[ticker]
     v_win = vibe_windows[ticker]
@@ -121,9 +122,15 @@ def compute_and_alert(ticker: str) -> dict | None:
     v_current = v_win.latest()
     v_avg = v_win.average()
 
-    # Not enough data yet
-    if any(x is None for x in [p_current, p_avg, v_current, v_avg]):
+    # No price data at all yet — too early to write anything
+    if p_current is None or p_avg is None:
         return None
+
+    # Vibe data might not exist yet — default to 0.0 (neutral)
+    if v_current is None:
+        v_current = 0.0
+    if v_avg is None:
+        v_avg = 0.0
 
     dp = delta_price(p_current, p_avg)
     dv = delta_vibe(v_current, v_avg)
@@ -141,7 +148,7 @@ def compute_and_alert(ticker: str) -> dict | None:
         "delta_price": dp,
         "delta_vibe": dv,
         "hype_momentum": mh,
-        "alert": alert,
+        "alert": alert,   # NULL in DB when no alert — row still written
     }
 
     if alert:
@@ -165,6 +172,7 @@ def run():
         # Poll price topics
         for topic in PRICE_TOPICS:
             raw = receive_one_content_from_kafka_topic(topic, timeout_s=POLL_TIMEOUT)
+            print("DEBUG CHIM TO:", raw, topic)
             if raw:
                 process_price_message(raw)
                 msg = json.loads(raw)
@@ -189,7 +197,7 @@ def run():
         # Compute metrics and write signals
         for ticker in PRICE_TOPICS:
             signal = compute_and_alert(ticker)
-            if signal:
+            if signal:                          # only None if price window empty
                 insert_signal(con, signal)
 
 

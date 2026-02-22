@@ -145,10 +145,10 @@ Fire an **IMMINENT_HYPE_PUMP** alert if and only if:
 | Technology             | Purpose           | Why it fits                             |
 | ---------------------- | ----------------- | --------------------------------------- |
 | Aiven Kafka            | Message broker    | Managed Kafka with SSL auth             |
-| Quix Streams           | Stream processing | Pure Python streaming; low overhead     |
-| Hugging Face (FinBERT) | NLP model         | Financial-text sentiment scoring        |
+| FinBERT (HuggingFace)  | NLP model         | Financial-text sentiment scoring        |
 | MotherDuck             | Lakehouse / DB    | DuckDB analytics with zero ops          |
 | Streamlit              | Frontend UI       | Fast reactive dashboard in Python       |
+| Telethon               | Telegram client   | Real-time event-driven message ingestion|
 
 ---
 

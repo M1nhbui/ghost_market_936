@@ -1,6 +1,6 @@
 from import_me_to_use_kafka_stuff import receive_one_content_from_kafka_topic
 
-TOPIC = "bitcoin"
+TOPIC = "dogecoin"
 
 print(f"[consumer] waiting for ONE message on topic={TOPIC!r} ...")
 msg = receive_one_content_from_kafka_topic(TOPIC, timeout_s=10)

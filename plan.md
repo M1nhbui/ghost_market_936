@@ -11,14 +11,13 @@ Based on the README, here is a comprehensive, step-by-step breakdown of the enti
 ### Steps:
 1. **Clone the repo** and create a Python virtual environment
 2. **Install dependencies** via `requirements.txt`, which will include:
-   - `confluent-kafka` or `kafka-python` (Upstash Kafka client)
-   - `quixstreams` (stream processor)
-   - `transformers`, `torch` (FinBERT/HuggingFace)
-   - `praw` (Reddit API)
-   - `duckdb`, `motherduck` (lakehouse)
-   - `streamlit`, `plotly` (dashboard)
-   - `requests` (CoinGecko polling)
+   - `confluent-kafka` (Aiven Kafka client)
+   - `telethon` (Telegram client)
+   - `transformers` + `torch` (FinBERT)
+   - `duckdb` (MotherDuck)
    - `python-dotenv` (secrets management)
+   - `requests` (CoinGecko)
+   - `streamlit` + `plotly` (dashboard)
 3. **Configure `.env`** with all secrets:
    ```env
    BOOTSTRAP_SERVERS=

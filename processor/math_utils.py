@@ -110,7 +110,7 @@ def check_alert(m_hype: float, dp: float) -> str | None:
     Returns:
         "IMMINENT_HYPE_PUMP" or None
     """
-    if m_hype > 100 and dp < 0.02:
+    if m_hype > 1 and dp < 0.02:
         return "IMMINENT_HYPE_PUMP"
     return None
 
