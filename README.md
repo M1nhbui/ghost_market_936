@@ -32,7 +32,7 @@ This helps surface early signals of:
 ## 🏗️ System Architecture
 
 GhostMarket uses an **in-flight streaming** architecture optimized for low latency.
-<img width="8192" height="987" alt="Ghost Market" src="https://github.com/user-attachments/assets/d12d32df-a98b-47fd-9b73-d2f510447992" />
+<img width="8192" height="981" alt="GhostMarket-v2" src="https://github.com/user-attachments/assets/c5208bcd-4b01-479f-b2d8-426bd31bb749" />
 
 
 ### Phase 1 — The Listeners (Data Ingestion)
@@ -82,7 +82,7 @@ A **Streamlit** dashboard queries MotherDuck continuously and renders:
 To reduce rate limits and avoid noisy data, GhostMarket tracks a predefined list of hype-driven targets:
 
 ```python
-TARGET_TICKERS = ["bitcoin", "dogecoin", "gamestop"]
+TARGET_TICKERS = ["bitcoin", "dogecoin"]
 ```
 
 It ingests two signal types:
