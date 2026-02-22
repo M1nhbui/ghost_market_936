@@ -179,7 +179,7 @@ ghostmarket/
 ### 1) Clone and install
 
 ```bash
-git clone https://github.com/your-team/ghostmarket.git
+git clone https://github.com/M1nhbui/ghost_market_936.git
 cd ghostmarket
 python -m venv venv
 source venv/bin/activate
