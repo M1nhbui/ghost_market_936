@@ -267,7 +267,24 @@ Hardcoded thresholds (e.g., $M_{hype} > 100$) work for an MVP, but real markets 
 
 ---
 
-## 📌 Notes
+## 🔮 Future Improvements
 
-* This project is for research/hackathon experimentation only and **not financial advice**.
-* Data sources may impose rate limits—keep your target list small for MVP demos.
+### Data Sources
+- Add X/Twitter feed alongside Telegram for broader sentiment coverage
+- Add Reddit (r/CryptoCurrency, r/Bitcoin) as a third social source
+- Expand to more tickers (Solana, Ethereum, etc.)
+
+### Signal Quality
+- Replace simple keyword/alias matching with NER (Named Entity Recognition) for more accurate ticker detection
+- Fine-tune FinBERT on crypto-specific language ("gm", "wagmi", "rekt", etc.)
+- Deduplicate repeated messages from same author within a time window to prevent artificial vibe inflation
+
+### Architecture
+- Replace manual poll loop with proper Quix Streams stateful processing for horizontal scaling
+- Add a dead letter queue for malformed Kafka messages
+- Add Prometheus + Grafana monitoring for pipeline health
+
+### Alerting
+- Push alerts to Telegram/Discord bot instead of just logging
+- Add more alert types (e.g. `PANIC_CRASH`, `WHALE_ACTIVITY`)
+- Tune `M_hype` and `ΔP` thresholds per ticker based on historical volatility
