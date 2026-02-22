@@ -1,6 +1,6 @@
 import StatCard from "./StatCard"
 import PriceLineChart from "../charts/PriceLineChart"
-import { fmtMoney, fmtPct } from "../../lib/format"
+import { fmtMoney, fmtPct } from "../../lib_with_format/format"
 
 function changePillClass(changePct) {
 	if (changePct > 0.01) return "bg-emerald-50 text-emerald-700 border-emerald-200"
